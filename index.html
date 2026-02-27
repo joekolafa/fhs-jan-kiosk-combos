@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Firehouse Subs — Kiosk Combo Analysis (January 2026)</title>
+<meta property="og:title" content="Firehouse Subs — Kiosk Combo Analysis">
+<meta property="og:description" content="January 2026 · 55.7% combo attach rate · +9.3pp kiosk advantage · +$1.05 per-order premium · Interactive dashboard with 4 tabs">
+<meta property="og:image" content="https://joekolafa.github.io/fhs-jan-kiosk-combos/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://joekolafa.github.io/fhs-jan-kiosk-combos/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Firehouse Subs — Kiosk Combo Analysis">
+<meta name="twitter:description" content="January 2026 · 55.7% combo attach · +9.3pp kiosk advantage · Interactive dashboard">
+<meta name="twitter:image" content="https://joekolafa.github.io/fhs-jan-kiosk-combos/og-image.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://unpkg.com/recharts@2.15.3/umd/Recharts.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', 'Segoe UI', sans-serif; background: #EBEBEB; color: #2D2D2D; -webkit-text-size-adjust: 100%; }
+  button { font-family: inherit; }
+  strong { font-weight: 700; }
+  ::-webkit-scrollbar { height: 4px; }
+  ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.35s ease-out forwards; }
+  @keyframes countUp { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  .count-up { animation: countUp 0.4s ease-out forwards; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, Legend } = Recharts;
+
+// ===== DATA =====
+const DATA = {
+  summary: { total_orders: 64642, total_combos: 36007, overall_attach_rate: 55.7, combo_revenue: 155762, avg_combo_price: 4.33 },
+  pos_summary: { total_orders: 481110, total_combos: 225128, attach_rate: 46.8 },
+  by_item: [
+    {item:"Hook & Ladder",combo:4710,just_sub:3481,total:8191,attach_rate:57.5},
+    {item:"Italian",combo:4134,just_sub:3407,total:7541,attach_rate:54.8},
+    {item:"Turkey Bacon Ranch",combo:3403,just_sub:2397,total:5800,attach_rate:58.7},
+    {item:"Firehouse Steak & Cheese",combo:2611,just_sub:2081,total:4692,attach_rate:55.6},
+    {item:"French Dip",combo:2418,just_sub:1697,total:4115,attach_rate:58.8},
+    {item:"Smokehouse Beef & Cheddar",combo:2338,just_sub:1597,total:3935,attach_rate:59.4},
+    {item:"Smoked Turkey Breast",combo:2066,just_sub:1774,total:3840,attach_rate:53.8},
+    {item:"Club On A Sub",combo:2077,just_sub:1458,total:3535,attach_rate:58.8},
+    {item:"Firehouse Meatball",combo:1732,just_sub:1483,total:3215,attach_rate:53.9},
+    {item:"New York Steamer",combo:1621,just_sub:1266,total:2887,attach_rate:56.1},
+    {item:"Spicy Cajun Chicken",combo:1497,just_sub:1250,total:2747,attach_rate:54.5},
+    {item:"Pepperoni Pizza Meatball",combo:1168,just_sub:861,total:2029,attach_rate:57.6},
+    {item:"Firehouse Hero",combo:962,just_sub:783,total:1745,attach_rate:55.1},
+    {item:"Engineer",combo:966,just_sub:777,total:1743,attach_rate:55.4},
+    {item:"Honey Ham",combo:979,just_sub:688,total:1667,attach_rate:58.7},
+    {item:"Captains Club Sub",combo:723,just_sub:593,total:1316,attach_rate:54.9},
+    {item:"Jamaican Jerk Turkey",combo:656,just_sub:574,total:1230,attach_rate:53.3},
+    {item:"Grilled Chicken Breast",combo:405,just_sub:402,total:807,attach_rate:50.2},
+    {item:"Tuna",combo:273,just_sub:358,total:631,attach_rate:43.3},
+    {item:"Sweet & Spicy Meatball",combo:324,just_sub:303,total:627,attach_rate:51.7},
+    {item:"Veggie",combo:190,just_sub:268,total:458,attach_rate:41.5},
+    {item:"Roast Beef",combo:172,just_sub:183,total:355,attach_rate:48.5},
+    {item:"B.L.T.",combo:195,just_sub:144,total:339,attach_rate:57.5},
+    {item:"Pastrami",combo:156,just_sub:157,total:313,attach_rate:49.8},
+    {item:"Engine Co.",combo:125,just_sub:107,total:232,attach_rate:53.9},
+  ],
+  pos_by_item: [
+    {item:"Hook & Ladder",attach:47.8,k_attach:57.5},{item:"Italian",attach:46.1,k_attach:54.8},
+    {item:"Turkey Bacon Ranch",attach:51.0,k_attach:58.7},{item:"Steak & Cheese",attach:45.7,k_attach:55.6},
+    {item:"Smokehouse B&C",attach:50.1,k_attach:59.4},{item:"Club On A Sub",attach:48.8,k_attach:58.8},
+    {item:"Meatball",attach:44.1,k_attach:53.9},{item:"French Dip",attach:47.2,k_attach:58.8},
+    {item:"NY Steamer",attach:47.0,k_attach:56.1},{item:"Spicy Cajun",attach:49.5,k_attach:54.5},
+    {item:"Smoked Turkey",attach:40.6,k_attach:53.8},{item:"Firehouse Hero",attach:47.8,k_attach:55.1},
+    {item:"Engineer",attach:47.0,k_attach:55.4},{item:"Jamaican Jerk",attach:48.1,k_attach:53.3},
+    {item:"Honey Ham",attach:43.2,k_attach:58.7},{item:"Pepperoni Pizza MB",attach:46.0,k_attach:57.6},
+    {item:"Tuna",attach:36.5,k_attach:43.3},{item:"Captains Club",attach:47.8,k_attach:54.9},
+    {item:"Grilled Chicken",attach:37.5,k_attach:50.2},{item:"Veggie",attach:31.3,k_attach:41.5},
+    {item:"Roast Beef",attach:31.9,k_attach:48.5},{item:"Pastrami",attach:31.5,k_attach:49.8},
+    {item:"Sweet & Spicy MB",attach:42.9,k_attach:51.7},{item:"B.L.T.",attach:38.2,k_attach:57.5},
+    {item:"Engine Co.",attach:46.3,k_attach:53.9},{item:"Corned Beef",attach:33.3,k_attach:48.1},
+  ],
+  price_by_item: [
+    {item:"Hook & Ladder",k:13.01,p:11.97},{item:"Italian",k:13.42,p:12.35},
+    {item:"Turkey Bacon Ranch",k:13.75,p:12.82},{item:"Steak & Cheese",k:14.56,p:13.36},
+    {item:"French Dip",k:15.83,p:15.02},{item:"Smokehouse B&C",k:15.73,p:14.58},
+    {item:"Smoked Turkey",k:12.67,p:11.54},{item:"Club On A Sub",k:13.73,p:12.81},
+    {item:"Meatball",k:13.17,p:12.14},{item:"NY Steamer",k:14.42,p:13.45},
+    {item:"Spicy Cajun",k:13.93,p:12.97},{item:"Pepperoni Pizza MB",k:14.68,p:13.99},
+    {item:"Firehouse Hero",k:14.96,p:13.70},{item:"Engineer",k:13.34,p:12.34},
+    {item:"Honey Ham",k:12.90,p:11.63},{item:"Captains Club",k:14.58,p:13.85},
+    {item:"Jamaican Jerk",k:13.26,p:12.29},{item:"Grilled Chicken",k:13.52,p:12.15},
+    {item:"Tuna",k:12.50,p:11.31},{item:"Sweet & Spicy MB",k:13.55,p:12.96},
+    {item:"Veggie",k:11.85,p:11.08},{item:"Roast Beef",k:13.52,p:12.15},
+    {item:"B.L.T.",k:13.01,p:11.76},{item:"Pastrami",k:14.62,p:12.98},
+    {item:"Engine Co.",k:13.86,p:13.12},
+  ],
+  by_size: [
+    {size:"Small",combo:5144,just_sub:4272,total:9416,attach_rate:54.6},
+    {size:"Medium",combo:22616,just_sub:16270,total:38886,attach_rate:58.2},
+    {size:"Large",combo:8103,just_sub:7696,total:15799,attach_rate:51.3},
+  ],
+  by_group: [
+    {group:"Limited Time Only",combo:2464,just_sub:1736,total:4200,attach_rate:58.7},
+    {group:"Hot Specialty Subs",combo:29242,just_sub:22562,total:51804,attach_rate:56.4},
+    {group:"Build Your Own Sub",combo:4278,just_sub:3870,total:8148,attach_rate:52.5},
+    {group:"Salads",combo:144,just_sub:397,total:541,attach_rate:26.6},
+  ],
+  side_choices: [
+    {side:"Chips",qty:24216,pct:67.5},{side:"Regular Fries",qty:3014,pct:8.4},
+    {side:"Mac & Cheese",qty:2497,pct:7.0},{side:"Choc Chip Cookie",qty:1188,pct:3.3},
+    {side:"Dbl Choc Cookie",qty:872,pct:2.4},{side:"Large Fries",qty:850,pct:2.4},
+    {side:"Brownie",qty:717,pct:2.0},{side:"Potato Soup Cup",qty:630,pct:1.8},
+    {side:"Chili Cup",qty:429,pct:1.2},{side:"Just The Salad",qty:397,pct:1.1},
+    {side:"Potato Soup Bowl",qty:380,pct:1.1},{side:"Chili Bowl",qty:294,pct:0.8},
+    {side:"Oatmeal Raisin",qty:281,pct:0.8},{side:"Side Salad",qty:233,pct:0.6},
+    {side:"Sugar Cookie",qty:139,pct:0.4},
+  ],
+  side_categories: [
+    {name:"Chips",value:24216},{name:"Fries (all)",value:3864},{name:"Mac & Cheese",value:2497},
+    {name:"Cookies (all)",value:2480},{name:"Soups",value:1010},{name:"Chili",value:723},{name:"Salad/Other",value:769},
+  ],
+  drink_choices: [
+    {drink:"Medium Fountain",qty:14350,pct:42.2},{drink:"Large Fountain",qty:10335,pct:30.4},
+    {drink:"Small Fountain",qty:8267,pct:24.3},{drink:"Bottle Coca-Cola",qty:808,pct:2.4},
+    {drink:"Bottle Water",qty:780,pct:2.3},{drink:"Bottled Sprite",qty:527,pct:1.6},
+    {drink:"Other Bottles",qty:885,pct:2.6},
+  ],
+  drink_size: [{name:"Small",value:8267},{name:"Medium",value:14350},{name:"Large",value:10335}],
+  drink_sub_matrix: [
+    {sub:"Small",s:2515,sp:48.9,m:1834,mp:35.7,l:795,lp:15.5},
+    {sub:"Medium",s:5859,sp:25.9,m:11059,mp:48.9,l:5698,lp:25.2},
+    {sub:"Large",s:1057,sp:13.0,m:2767,mp:34.1,l:4279,lp:52.8},
+  ],
+};
+
+// ===== COLORS =====
+const C = {
+  fire:"#FF4C00", fireDark:"#CC3D00", fireLight:"#FF7A40", fireBg:"#FFF3ED",
+  smoke:"#2D2D2D", smokeMed:"#5A5A5A", smokeLight:"#8A8A8A", smokeFaint:"#B8B8B8",
+  cream:"#F7F7F7", creamDark:"#EBEBEB",
+  gold:"#FFB700", goldLight:"#FFD966", goldBg:"#FFFBF0",
+  teal:"#5069C3", tealLight:"#7B8FD6", tealBg:"#F0F3FB",
+  white:"#FFFFFF",
+  chart:["#FF4C00","#FFB700","#5069C3","#7B8FD6","#8B5C9A","#CC3D00","#5AAA6A"],
+};
+
+const fmt = (n) => n.toLocaleString();
+const fmtPct = (n) => n.toFixed(1) + "%";
+const fmtUSD = (n) => "$" + n.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0});
+
+// ===== HOOKS =====
+function useMobile(bp = 640) {
+  const [m, setM] = useState(window.innerWidth < bp);
+  useEffect(() => { const h = () => setM(window.innerWidth < bp); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  return m;
+}
+
+function useInView(threshold = 0.15) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!ref.current) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { threshold });
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  return [ref, visible];
+}
+
+// ===== COMPONENTS =====
+const KPI = ({label, value, sub, color}) => {
+  const [ref, vis] = useInView();
+  return (
+    <div ref={ref} className={vis ? "count-up" : ""} style={{background:C.white, borderRadius:12, padding:"18px 22px", boxShadow:"0 1px 4px rgba(0,0,0,0.05)", borderTop:`3px solid ${color||C.fire}`, flex:1, minWidth:140, opacity: vis?1:0}}>
+      <div style={{fontSize:10, color:C.smokeLight, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em"}}>{label}</div>
+      <div style={{fontSize:26, fontWeight:800, color:C.smoke, marginTop:5}}>{value}</div>
+      {sub && <div style={{fontSize:11.5, color:C.smokeMed, marginTop:3, lineHeight:1.4}}>{sub}</div>}
+    </div>
+  );
+};
+
+const Insight = ({icon, title, children, accent}) => (
+  <div style={{background:accent||C.fireBg, borderRadius:10, padding:"13px 16px", display:"flex", gap:10, alignItems:"flex-start", marginBottom:10}}>
+    {icon && <div style={{fontSize:17, flexShrink:0, marginTop:1}}>{icon}</div>}
+    <div>
+      <div style={{fontSize:12.5, fontWeight:700, color:C.smoke, marginBottom:2}}>{title}</div>
+      <div style={{fontSize:12, color:C.smokeMed, lineHeight:1.55}}>{children}</div>
+    </div>
+  </div>
+);
+
+const SectionTitle = ({children, sub}) => (
+  <div style={{marginBottom:12, marginTop:28}}>
+    <h2 style={{fontSize:17, fontWeight:800, color:C.smoke, margin:0}}>{children}</h2>
+    {sub && <p style={{fontSize:12, color:C.smokeLight, margin:"3px 0 0"}}>{sub}</p>}
+  </div>
+);
+
+const CustomTooltip = ({active, payload, label}) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{background:C.smoke, color:C.white, padding:"10px 14px", borderRadius:8, fontSize:12, boxShadow:"0 4px 12px rgba(0,0,0,0.25)", maxWidth:220}}>
+      <div style={{fontWeight:700, marginBottom:4}}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{display:"flex", alignItems:"center", gap:6, marginTop:2}}>
+          <div style={{width:8, height:8, borderRadius:4, background:p.color, flexShrink:0}}/>
+          <span>{p.name}: {typeof p.value === "number" ? (p.name.includes("$") || p.name.includes("Price") ? "$"+p.value.toFixed(2) : p.name.includes("%") || p.name.includes("Attach") || p.name.includes("Rate") ? p.value.toFixed(1)+"%" : fmt(p.value)) : p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const DualTooltip = ({active, payload, label, fmtVal}) => {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  return (
+    <div style={{background:C.smoke, color:C.white, padding:"10px 14px", borderRadius:8, fontSize:12, boxShadow:"0 4px 12px rgba(0,0,0,0.25)"}}>
+      <div style={{fontWeight:700, marginBottom:4}}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{display:"flex", alignItems:"center", gap:6, marginTop:2}}>
+          <div style={{width:8, height:8, borderRadius:4, background:p.color, flexShrink:0}}/>
+          <span>{p.name}: {fmtVal(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const AnimatedCard = ({children, style}) => {
+  const [ref, vis] = useInView(0.08);
+  return <div ref={ref} className={vis ? "fade-in" : ""} style={{background:C.white, borderRadius:12, padding:18, boxShadow:"0 1px 4px rgba(0,0,0,0.05)", opacity:vis?1:0, ...style}}>{children}</div>;
+};
+
+const ChartLegend = ({items}) => (
+  <div style={{display:"flex", gap:16, justifyContent:"center", marginTop:8}}>
+    {items.map(([label, color]) => (
+      <div key={label} style={{display:"flex", alignItems:"center", gap:6, fontSize:12, color:C.smokeMed}}>
+        <div style={{width:12, height:12, borderRadius:3, background:color}}/> {label}
+      </div>
+    ))}
+  </div>
+);
+
+// Heatmap cell
+const HeatCell = ({value, pct, max}) => {
+  const intensity = value / max;
+  const bg = `rgba(255, 76, 0, ${(0.06 + intensity * 0.52).toFixed(2)})`;
+  const tc = intensity > 0.55 ? C.white : C.smoke;
+  return <td style={{background:bg, color:tc, padding:"9px 12px", textAlign:"center", fontWeight:700, fontSize:13, borderRadius:6, minWidth:80}}>{fmt(value)}<div style={{fontSize:10, fontWeight:500, opacity:0.85}}>{pct}%</div></td>;
+};
+
+const TABS = ["Overview", "By Sub Item", "Sides & Drinks", "POS Comparison"];
+
+function Dashboard() {
+  const [tab, setTab] = useState("Overview");
+  const mob = useMobile();
+  const d = DATA;
+
+  return (
+    <div style={{fontFamily:"'DM Sans','Segoe UI',sans-serif", background:C.creamDark, minHeight:"100vh", color:C.smoke}}>
+
+      {/* Header */}
+      <div style={{background:`linear-gradient(135deg, ${C.smoke} 0%, #444 100%)`, padding: mob ? "20px 16px 14px" : "24px 28px 18px", color:C.white}}>
+        <div style={{display:"flex", alignItems:"center", gap:10}}>
+          <div style={{width:5, height:32, borderRadius:3, background:C.fire, flexShrink:0}}></div>
+          <div>
+            <h1 style={{margin:0, fontSize: mob ? 17 : 20, fontWeight:800, letterSpacing:"-0.02em"}}>Firehouse Subs — Kiosk Combo Analysis</h1>
+            <div style={{fontSize:11, opacity:0.6, marginTop:3}}>January 2026 · Full month · Toast Product Mix Export · 64K kiosk + 488K POS orders</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex", background:C.white, borderBottom:`2px solid ${C.creamDark}`, padding:"0 12px", overflowX:"auto", WebkitOverflowScrolling:"touch"}}>
+        {TABS.map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            padding:"10px 14px", fontSize:12, fontWeight: tab===t ? 700 : 500,
+            color: tab===t ? C.fire : C.smokeMed, background:"none", border:"none",
+            borderBottom: tab===t ? `3px solid ${C.fire}` : "3px solid transparent",
+            cursor:"pointer", whiteSpace:"nowrap", transition:"all 0.15s"
+          }}>{t}</button>
+        ))}
+      </div>
+
+      <div style={{padding: mob ? "12px 14px 40px" : "16px 24px 48px", maxWidth:1080, margin:"0 auto"}}>
+
+        {/* ===== OVERVIEW ===== */}
+        {tab === "Overview" && <>
+          <div style={{display:"flex", gap:10, flexWrap:"wrap", marginTop:8, flexDirection: mob ? "column" : "row"}}>
+            <KPI label="Kiosk Orders" value={fmt(d.summary.total_orders)} sub="Subs + salads, all groups" color={C.smoke}/>
+            <KPI label="Combo Attach Rate" value={fmtPct(d.summary.overall_attach_rate)} sub={`${fmt(d.summary.total_combos)} of ${fmt(d.summary.total_orders)} orders`} color={C.fire}/>
+            <KPI label="Combo Revenue" value={fmtUSD(d.summary.combo_revenue)} sub="Base combo upcharge (31 days)" color={C.gold}/>
+            <KPI label="Avg Combo Upcharge" value="$4.33" sub="Per combo add-on" color={C.teal}/>
+          </div>
+
+          <SectionTitle sub="Medium subs lead conversion at 58.2% — they also represent 61% of all orders">Combo Attach by Sub Size</SectionTitle>
+          <AnimatedCard>
+            <ResponsiveContainer width="100%" height={mob ? 200 : 230}>
+              <ComposedChart data={d.by_size} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
+                <XAxis dataKey="size" tick={{fontSize:12, fontWeight:600}}/>
+                <YAxis yAxisId="left" tick={{fontSize:10}} tickFormatter={fmt}/>
+                <YAxis yAxisId="right" orientation="right" tick={{fontSize:10}} tickFormatter={v => v+"%"} domain={[20, 70]}/>
+                <Tooltip content={<CustomTooltip/>}/>
+                <Bar yAxisId="left" dataKey="combo" name="Combo" fill={C.fire} radius={[4,4,0,0]} animationDuration={800}/>
+                <Bar yAxisId="left" dataKey="just_sub" name="Just Sub" fill={C.creamDark} radius={[4,4,0,0]} animationDuration={800}/>
+                <Line yAxisId="right" dataKey="attach_rate" name="Attach %" stroke={C.gold} strokeWidth={3} dot={{r:5, fill:C.gold}} animationDuration={1000}/>
+              </ComposedChart>
+            </ResponsiveContainer>
+          </AnimatedCard>
+
+          <SectionTitle sub="Attach rate by menu category">Combo Attach by Menu Group</SectionTitle>
+          <AnimatedCard>
+            <ResponsiveContainer width="100%" height={mob ? 180 : 200}>
+              <BarChart data={d.by_group} layout="vertical" barCategoryGap="22%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
+                <XAxis type="number" tick={{fontSize:10}} tickFormatter={fmt}/>
+                <YAxis type="category" dataKey="group" width={mob ? 110 : 160} tick={{fontSize: mob ? 10 : 12}}/>
+                <Tooltip content={<CustomTooltip/>}/>
+                <Bar dataKey="combo" name="Combo" fill={C.fire} radius={[0,4,4,0]} stackId="a" animationDuration={800}/>
+                <Bar dataKey="just_sub" name="Just Sub" fill={C.creamDark} radius={[0,4,4,0]} stackId="a" animationDuration={800}/>
+              </BarChart>
+            </ResponsiveContainer>
+            <Insight title="Menu group attach rates" accent={C.tealBg}>
+              Limited Time Only leads at 58.7%, followed by Hot Specialty Subs at 56.4%, Build Your Own at 52.5%, and Salads at 26.6%.
+            </Insight>
+          </AnimatedCard>
+
+          <SectionTitle sub="~50% of customers match their drink size to their sub size">Drink Size vs. Sub Size</SectionTitle>
+          <AnimatedCard style={{overflowX:"auto"}}>
+            <table style={{borderCollapse:"separate", borderSpacing: mob ? 4 : 6, width:"100%", maxWidth:520, margin:"0 auto"}}>
+              <thead>
+                <tr><th style={{padding:6, fontSize:10, color:C.smokeLight}}></th><th style={{padding:6, fontSize:11, color:C.smokeMed, fontWeight:700}} colSpan={3}>Drink Size Selected</th></tr>
+                <tr><th style={{padding:6, fontSize:10, color:C.smokeLight, textAlign:"left"}}>Sub Size ↓</th>{["Small","Medium","Large"].map(s => <th key={s} style={{padding:6, fontSize:11, fontWeight:600, color:C.smokeMed}}>{s}</th>)}</tr>
+              </thead>
+              <tbody>
+                {d.drink_sub_matrix.map(row => (
+                  <tr key={row.sub}>
+                    <td style={{padding:6, fontWeight:700, fontSize:12}}>{row.sub}</td>
+                    <HeatCell value={row.s} pct={row.sp} max={11059}/>
+                    <HeatCell value={row.m} pct={row.mp} max={11059}/>
+                    <HeatCell value={row.l} pct={row.lp} max={11059}/>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </AnimatedCard>
+        </>}
+
+        {/* ===== BY SUB ITEM ===== */}
+        {tab === "By Sub Item" && <>
+          <div style={{marginTop:8}}>
+            <Insight title="Tight cluster with a few outliers" accent={C.tealBg}>
+              20 of 25 subs fall between 50–60% combo attach. Veggie (41.5%), Tuna (43.3%), and Roast Beef (48.5%) are the low outliers — health-conscious or lighter options where the chips-and-drink bundle is a less natural fit.
+            </Insight>
+          </div>
+
+          <SectionTitle sub="Sorted by total volume">Combo vs. Just-the-Sub by Item</SectionTitle>
+          <AnimatedCard>
+            <ResponsiveContainer width="100%" height={mob ? 520 : 560}>
+              <BarChart data={d.by_item} layout="vertical" barCategoryGap="14%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
+                <XAxis type="number" tick={{fontSize:10}} tickFormatter={fmt}/>
+                <YAxis type="category" dataKey="item" width={mob ? 105 : 185} tick={{fontSize: mob ? 9 : 11}}/>
+                <Tooltip content={<CustomTooltip/>}/>
+                <Bar dataKey="combo" name="Combo" fill={C.fire} radius={[0,4,4,0]} stackId="a" animationDuration={800}/>
+                <Bar dataKey="just_sub" name="Just Sub" fill={C.creamDark} radius={[0,4,4,0]} stackId="a" animationDuration={800}/>
+              </BarChart>
+            </ResponsiveContainer>
+          </AnimatedCard>
+
+          <SectionTitle sub="Ranked by combo conversion — green ≥57%, yellow ≥50%, red <50%">Attach Rate Ranking</SectionTitle>
+          <AnimatedCard style={{padding: mob ? 10 : 14, overflowX:"auto"}}>
+            <table style={{width:"100%", borderCollapse:"collapse", fontSize: mob ? 11.5 : 12.5}}>
+              <thead>
+                <tr style={{borderBottom:`2px solid ${C.creamDark}`}}>
+                  {["Sub","Total","Combos","Just Sub","Attach Rate"].map(h =>
+                    <th key={h} style={{padding:"8px 8px", textAlign: h==="Sub" ? "left" : "right", fontWeight:700, color:C.smokeMed, fontSize:10, textTransform:"uppercase", letterSpacing:"0.05em"}}>{h}</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {[...d.by_item].sort((a,b) => b.attach_rate - a.attach_rate).map((item, i) => (
+                  <tr key={item.item} style={{borderBottom:`1px solid ${C.creamDark}`, background: i%2===0 ? C.white : C.cream}}>
+                    <td style={{padding:"6px 8px", fontWeight:600, fontSize: mob ? 11 : 12.5}}>{item.item}</td>
+                    <td style={{padding:"6px 8px", textAlign:"right"}}>{fmt(item.total)}</td>
+                    <td style={{padding:"6px 8px", textAlign:"right", color:C.fire, fontWeight:600}}>{fmt(item.combo)}</td>
+                    <td style={{padding:"6px 8px", textAlign:"right", color:C.smokeLight}}>{fmt(item.just_sub)}</td>
+                    <td style={{padding:"6px 8px", textAlign:"right"}}>
+                      <div style={{display:"inline-flex", alignItems:"center", gap:5}}>
+                        <div style={{width: mob ? 40 : 55, height:5, background:C.creamDark, borderRadius:3, overflow:"hidden"}}>
+                          <div style={{width:`${item.attach_rate}%`, height:"100%", background: item.attach_rate >= 57 ? C.teal : item.attach_rate >= 50 ? C.gold : C.fire, borderRadius:3, transition:"width 0.6s ease"}}/>
+                        </div>
+                        <span style={{fontWeight:700, fontSize:12, minWidth:40}}>{fmtPct(item.attach_rate)}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </AnimatedCard>
+        </>}
+
+        {/* ===== SIDES & DRINKS ===== */}
+        {tab === "Sides & Drinks" && <>
+          <div style={{marginTop:8}}>
+            <Insight icon="🍟" title="Fries are the #2 combo side" accent={C.goldBg}>
+              Fries (regular + large) account for 10.8% of combo side selections (3,864 orders). Mac & Cheese comes in at 7.0%, followed by cookies and desserts at ~8.5% combined.
+            </Insight>
+          </div>
+
+          <SectionTitle sub="Chips dominate at 67.5% — fries are a strong second at 10.8%">Side Selection Distribution</SectionTitle>
+          <div style={{display:"flex", gap:12, flexWrap:"wrap", flexDirection: mob ? "column" : "row"}}>
+            <AnimatedCard style={{flex:"1 1 380px", minWidth:0}}>
+              <ResponsiveContainer width="100%" height={420}>
+                <BarChart data={d.side_choices} layout="vertical" barCategoryGap="12%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
+                  <XAxis type="number" tick={{fontSize:10}} tickFormatter={fmt}/>
+                  <YAxis type="category" dataKey="side" width={mob ? 95 : 135} tick={{fontSize: mob ? 9.5 : 11}}/>
+                  <Tooltip content={<CustomTooltip/>}/>
+                  <Bar dataKey="qty" name="Qty" fill={C.fire} radius={[0,4,4,0]} animationDuration={800}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </AnimatedCard>
+            <AnimatedCard style={{flex:"1 1 240px", minWidth:0}}>
+              <h3 style={{fontSize:12.5, fontWeight:700, margin:"0 0 8px", color:C.smokeMed}}>Side Category Breakdown</h3>
+              <ResponsiveContainer width="100%" height={mob ? 220 : 260}>
+                <PieChart>
+                  <Pie data={d.side_categories} cx="50%" cy="50%" outerRadius={mob ? 70 : 95} innerRadius={mob ? 38 : 52} paddingAngle={2} dataKey="value"
+                    label={mob ? false : ({name, percent}) => percent > 0.03 ? `${name} ${(percent*100).toFixed(0)}%` : ""} labelLine={!mob} style={{fontSize:10}}>
+                    {C.chart.map((c,i) => <Cell key={i} fill={c}/>)}
+                  </Pie>
+                  <Tooltip formatter={(v, name) => [fmt(v), name]}/>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{display:"flex", flexWrap:"wrap", gap:"3px 10px", justifyContent:"center"}}>
+                {d.side_categories.map((s,i) => <div key={s.name} style={{display:"flex", alignItems:"center", gap:4, fontSize:10, color:C.smokeMed}}><div style={{width:8, height:8, borderRadius:4, background:C.chart[i]}}/>{s.name}</div>)}
+              </div>
+            </AnimatedCard>
+          </div>
+
+          <SectionTitle sub="Fountain drinks are 97% of combo drink selections">Drink Selection</SectionTitle>
+          <div style={{display:"flex", gap:12, flexWrap:"wrap", flexDirection: mob ? "column" : "row"}}>
+            <AnimatedCard style={{flex:"1 1 380px", minWidth:0}}>
+              <ResponsiveContainer width="100%" height={230}>
+                <BarChart data={d.drink_choices} layout="vertical" barCategoryGap="14%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
+                  <XAxis type="number" tick={{fontSize:10}} tickFormatter={fmt}/>
+                  <YAxis type="category" dataKey="drink" width={mob ? 95 : 130} tick={{fontSize: mob ? 9.5 : 11}}/>
+                  <Tooltip content={<CustomTooltip/>}/>
+                  <Bar dataKey="qty" name="Qty" fill={C.teal} radius={[0,4,4,0]} animationDuration={800}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </AnimatedCard>
+            <AnimatedCard style={{flex:"1 1 240px", minWidth:0}}>
+              <h3 style={{fontSize:12.5, fontWeight:700, margin:"0 0 8px", color:C.smokeMed}}>Combo Drink Size Split</h3>
+              <ResponsiveContainer width="100%" height={mob ? 180 : 200}>
+                <PieChart>
+                  <Pie data={d.drink_size} cx="50%" cy="50%" outerRadius={mob ? 60 : 75} innerRadius={mob ? 32 : 42} paddingAngle={3} dataKey="value"
+                    label={mob ? false : ({name, percent}) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={!mob} style={{fontSize:11}}>
+                    {[C.fire, C.gold, C.teal].map((c,i) => <Cell key={i} fill={c}/>)}
+                  </Pie>
+                  <Tooltip formatter={(v, name) => [fmt(v), name]}/>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{textAlign:"center", fontSize:11, color:C.smokeMed, marginTop:4}}>
+                Small 25.1% · Medium 43.6% · Large 31.4%
+              </div>
+            </AnimatedCard>
+          </div>
+        </>}
+
+        {/* ===== POS COMPARISON ===== */}
+        {tab === "POS Comparison" && <>
+          <div style={{display:"flex", gap:10, flexWrap:"wrap", marginTop:8, flexDirection: mob ? "column" : "row"}}>
+            <KPI label="Kiosk Combo Attach" value="56.1%" sub="35,863 of 64,101 sub orders" color={C.teal}/>
+            <KPI label="POS Combo Attach" value="46.8%" sub="225,128 of 481,110 orders" color={C.fire}/>
+            <KPI label="Kiosk Advantage" value="+9.3pp" sub="Every sub item converts higher on kiosk" color={C.gold}/>
+          </div>
+
+          <SectionTitle sub="Every sub converts higher on kiosk — gap ranges from 5.0pp to 19.3pp">Per-Item Combo Attach: Kiosk vs. POS</SectionTitle>
+          <AnimatedCard>
+            <ResponsiveContainer width="100%" height={mob ? 560 : 580}>
+              <BarChart data={d.pos_by_item.map(r => ({...r, gap: +(r.k_attach - r.attach).toFixed(1)}))} layout="vertical" barCategoryGap="12%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
+                <XAxis type="number" tick={{fontSize:10}} tickFormatter={v => v+"%"} domain={[0, 70]}/>
+                <YAxis type="category" dataKey="item" width={mob ? 90 : 145} tick={{fontSize: mob ? 9 : 11}}/>
+                <Tooltip content={<DualTooltip fmtVal={v => v.toFixed(1)+"%"}/>}/>
+                <Bar dataKey="attach" name="POS" fill={C.fire} radius={[0,4,4,0]} animationDuration={800}/>
+                <Bar dataKey="k_attach" name="Kiosk" fill={C.teal} radius={[0,4,4,0]} animationDuration={800}/>
+              </BarChart>
+            </ResponsiveContainer>
+            <ChartLegend items={[["Kiosk", C.teal], ["POS", C.fire]]}/>
+          </AnimatedCard>
+
+          <SectionTitle sub="Avg price includes all modifiers — every sub is higher on kiosk">Per-Item Avg Price: Kiosk vs. POS</SectionTitle>
+          <div style={{display:"flex", gap:10, flexWrap:"wrap", marginBottom:12, flexDirection: mob ? "column" : "row"}}>
+            <KPI label="Kiosk Weighted Avg" value="$13.88" sub="64,067 specialty subs" color={C.teal}/>
+            <KPI label="POS Weighted Avg" value="$12.83" sub="481,110 specialty subs" color={C.fire}/>
+            <KPI label="Kiosk Premium" value="+$1.05" sub="+8.2% per sub item" color={C.gold}/>
+          </div>
+          <AnimatedCard>
+            <ResponsiveContainer width="100%" height={mob ? 540 : 580}>
+              <BarChart data={d.price_by_item.map(r => ({...r, delta: +(r.k - r.p).toFixed(2)}))} layout="vertical" barCategoryGap="12%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#eee"/>
+                <XAxis type="number" tick={{fontSize:10}} tickFormatter={v => "$"+v} domain={[8, 18]}/>
+                <YAxis type="category" dataKey="item" width={mob ? 90 : 145} tick={{fontSize: mob ? 9 : 11}}/>
+                <Tooltip content={<DualTooltip fmtVal={v => "$"+v.toFixed(2)}/>}/>
+                <Bar dataKey="p" name="POS" fill={C.fire} radius={[0,4,4,0]} animationDuration={800}/>
+                <Bar dataKey="k" name="Kiosk" fill={C.teal} radius={[0,4,4,0]} animationDuration={800}/>
+              </BarChart>
+            </ResponsiveContainer>
+            <ChartLegend items={[["Kiosk", C.teal], ["POS", C.fire]]}/>
+          </AnimatedCard>
+
+          <div style={{marginTop:14, display:"flex", gap:12, flexWrap:"wrap"}}>
+            <Insight title="Consistent premium across the entire menu" accent={C.tealBg}>
+              Every single sub averages higher on kiosk, ranging from +$0.59 (Sweet & Spicy Meatball) to +$1.64 (Pastrami). The January premium of $1.05 is driven by both higher combo attach and guests choosing larger sizes and more premium toppings.
+            </Insight>
+            <Insight title="What's driving the premium?" accent={C.creamDark}>
+              The kiosk's $1.05 per-sub premium reflects both <strong>higher combo attach</strong> (+9.3pp, adding ~$0.40 per sub) and guests independently <strong>choosing larger sizes and more premium toppings</strong> (~$0.65) when ordering at their own pace.
+            </Insight>
+          </div>
+
+          <SectionTitle sub="If patterns from January held, and stores shifted from 2 to 3 kiosks">Forecast: What Kiosk Adoption Could Mean</SectionTitle>
+          <AnimatedCard style={{padding: mob ? 16 : 24}}>
+            <div style={{fontSize:12.5, color:C.smokeMed, lineHeight:1.6, marginBottom:18}}>
+              From a separate 34-store analysis, stores with 3 kiosks see <strong>30.1% kiosk share</strong> vs. 18.3% with 2 kiosks. That shifts roughly <strong>617 additional orders per store every 2 months</strong> from POS to kiosk. If the January Product Mix pricing patterns held at scale:
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%", borderCollapse:"collapse", fontSize: mob ? 11.5 : 13}}>
+                <thead>
+                  <tr style={{borderBottom:`2px solid ${C.creamDark}`}}>
+                    <th style={{padding:"9px 10px", textAlign:"left", fontWeight:700, color:C.smokeMed, fontSize:10.5, textTransform:"uppercase"}}>Metric</th>
+                    <th style={{padding:"9px 10px", textAlign:"right", fontWeight:700, color:C.smokeMed, fontSize:10.5, textTransform:"uppercase"}}>2 Kiosk</th>
+                    <th style={{padding:"9px 10px", textAlign:"right", fontWeight:700, color:C.smokeMed, fontSize:10.5, textTransform:"uppercase"}}>3 Kiosk</th>
+                    <th style={{padding:"9px 10px", textAlign:"right", fontWeight:700, color:C.gold, fontSize:10.5, textTransform:"uppercase"}}>Diff</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Kiosk sales share","18.3%","30.1%","+11.8pp",""],
+                    ["Kiosk orders (2mo)","970","1,587","+617",""],
+                    ["POS orders (2mo)","2,525","1,908","−617",""],
+                    ["---"],
+                    ["Kiosk combos (@ 56.1%)","544","890","+346",""],
+                    ["POS combos (@ 46.8%)","1,182","893","−289",""],
+                    ["Total store combos","1,726","1,783","+57",""],
+                    ["---"],
+                    ["Per-order kiosk premium","","","$1.05",""],
+                    ["↳ from combo attach (~$0.40)","","","","sub"],
+                    ["↳ from size/topping upsell (~$0.65)","","","","sub"],
+                    ["Incremental revenue (2mo)","","","+$648",""],
+                    ["Projected annual per store","","","+$3,887","hl"],
+                  ].map((row, i) => {
+                    if (row[0] === "---") return <tr key={i}><td colSpan={4} style={{padding:3, borderBottom:`1px solid ${C.creamDark}`}}/></tr>;
+                    const isHL = row[4] === "hl", isSub = row[4] === "sub";
+                    return (
+                      <tr key={i} style={{borderBottom:`1px solid ${C.creamDark}`, background: isHL ? C.goldBg : i%2===0 ? C.white : C.cream}}>
+                        <td style={{padding:"7px 10px", fontWeight: isHL ? 800 : 600, color: isHL ? C.gold : isSub ? C.smokeLight : C.smoke, fontSize: isSub ? 11.5 : 12.5, fontStyle: isSub ? "italic" : "normal", textAlign:"left"}}>{row[0]}</td>
+                        <td style={{padding:"7px 10px", textAlign:"right", fontSize: isSub ? 11 : 12.5}}>{row[1]}</td>
+                        <td style={{padding:"7px 10px", textAlign:"right", fontSize: isSub ? 11 : 12.5}}>{row[2]}</td>
+                        <td style={{padding:"7px 10px", textAlign:"right", fontWeight:700, color: isHL ? C.gold : isSub ? C.smokeLight : C.teal, fontSize: isSub ? 11 : 12.5}}>{row[3]}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Insight title="How to read these numbers" accent={C.creamDark}>
+              The $1.05 per-sub premium comes from the January Product Mix export (kiosk avg $13.88 vs. POS avg $12.83, all stores). The 2-to-3 kiosk adoption shift (18.3% to 30.1% kiosk share, 617 incremental orders) comes from a separate 34-store analysis. The forecast assumes both patterns would hold together at scale.
+            </Insight>
+          </AnimatedCard>
+
+          <SectionTitle>If These Patterns Held at Scale</SectionTitle>
+          <div style={{display:"flex", gap:12, flexWrap:"wrap", flexDirection: mob ? "column" : "row"}}>
+            {[{s:100,a:388710},{s:500,a:1943550},{s:1000,a:3887100},{s:1500,a:5830650}].map(({s,a}) => (
+              <KPI key={s} label={`${fmt(s)} stores`} value={fmtUSD(a)} sub="projected annual from 2K→3K" color={C.gold}/>
+            ))}
+          </div>
+
+          <div style={{background:C.fireBg, borderRadius:12, padding: mob ? 16 : 20, marginTop:24, border:`1px solid ${C.fireLight}30`}}>
+            <div style={{fontSize:15, fontWeight:800, color:C.fire, marginBottom:7}}>Bottom Line</div>
+            <div style={{fontSize:13.5, color:C.smoke, lineHeight:1.7}}>
+              January's data shows the kiosk delivers a <strong>56.1% combo attach rate</strong> — 9.3pp higher than POS's 46.8% — with tight clustering across most subs (51–59%). The Product Mix shows a <strong>$1.05 per-sub premium</strong> on kiosk ($13.88 vs. $12.83), consistent across all 25+ subs. If these patterns held, moving from 2-kiosk to 3-kiosk adoption projects to <strong>~$3,900/year per store</strong> in incremental revenue.
+            </div>
+          </div>
+        </>}
+
+      </div>
+
+      <div style={{textAlign:"center", padding:"14px 20px 22px", fontSize:10.5, color:C.smokeLight}}>
+        Firehouse Subs Kiosk Combo Analysis · January 2026 (full month) · Toast Product Mix Export · 64,693 kiosk + 487,990 POS orders
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<Dashboard/>, document.getElementById("root"));
+</script>
+</body>
+</html>
